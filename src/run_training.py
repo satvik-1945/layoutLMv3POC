@@ -3,6 +3,7 @@ import os
 from datasets import load_dataset, load_metric, Features, Array3D, Sequence, Array2D, Value
 from transformers import LayoutLMv3ForTokenClassification, TrainingArguments, Trainer, LayoutLMv3Processor
 from transformers.data.data_collator import default_data_collator
+import seqeval
 
 base_model = 'microsoft/layoutlmv3-large'
 label_list = ['B-ANSWER_RADIO', 'I-ANSWER_RADIO', 'E-ANSWER_RADIO', 'B-ANSWER_TEXT', 'I-ANSWER_TEXT', 'E-ANSWER_TEXT',
