@@ -1,8 +1,14 @@
 import numpy as np
 import os
-from datasets import load_dataset, load_metric, Features, Array3D, Sequence, Array2D, Value
+from datasets import load_dataset, Features, Array3D, Sequence, Array2D, Value
 from transformers import LayoutLMv3ForTokenClassification, TrainingArguments, Trainer, LayoutLMv3Processor
 from transformers.data.data_collator import default_data_collator
+from seqeval.metrics import accuracy_score, classification_report, f1_score
+import subprocess
+import sys
+
+# Explicitly install seqeval (for debugging)
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'seqeval'])
 
 base_model = 'microsoft/layoutlmv3-large'
 label_list = ['B-ANSWER_RADIO', 'I-ANSWER_RADIO', 'E-ANSWER_RADIO', 'B-ANSWER_TEXT', 'I-ANSWER_TEXT', 'E-ANSWER_TEXT',
@@ -16,7 +22,6 @@ processor = LayoutLMv3Processor.from_pretrained(base_model, apply_ocr=False)
 
 
 def compute_metrics(p):
-    metric = load_metric("seqeval")
     predictions, labels = p
     predictions = np.argmax(predictions, axis=2)
 
@@ -29,13 +34,12 @@ def compute_metrics(p):
         for prediction, label in zip(predictions, labels)
     ]
 
-    results = metric.compute(predictions=true_predictions, references=true_labels)
-    return {
-        "precision": results["overall_precision"],
-        "recall": results["overall_recall"],
-        "f1": results["overall_f1"],
-        "accuracy": results["overall_accuracy"],
+    results = {
+        'accuracy': accuracy_score(true_labels, true_predictions),
+        'f1': f1_score(true_labels, true_predictions),
+        'classification_report': classification_report(true_labels, true_predictions)
     }
+    return results
 
 
 def prepare_examples(examples):
@@ -117,7 +121,5 @@ def train():
 
     trainer.train()
     trainer.save_model(os.environ['SM_MODEL_DIR']) #save to sagemaker model dir
-
-
 
 train()
