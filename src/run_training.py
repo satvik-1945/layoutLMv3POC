@@ -3,7 +3,6 @@ import os
 from datasets import load_dataset, Features, Array3D, Sequence, Array2D, Value
 from transformers import LayoutLMv3ForTokenClassification, TrainingArguments, Trainer, LayoutLMv3Processor
 from transformers.data.data_collator import default_data_collator
-from seqeval.metrics import accuracy_score, classification_report, f1_score
 import subprocess
 import sys
 
@@ -19,27 +18,6 @@ label2id = {v: k for k, v in enumerate(label_list)}
 model = LayoutLMv3ForTokenClassification.from_pretrained(base_model, num_labels=len(label_list),
                                                          id2label=id2label, label2id=label2id)
 processor = LayoutLMv3Processor.from_pretrained(base_model, apply_ocr=False)
-
-
-def compute_metrics(p):
-    predictions, labels = p
-    predictions = np.argmax(predictions, axis=2)
-
-    true_predictions = [
-        [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
-        for prediction, label in zip(predictions, labels)
-    ]
-    true_labels = [
-        [label_list[l] for (p, l) in zip(prediction, label) if l != -100]
-        for prediction, label in zip(predictions, labels)
-    ]
-
-    results = {
-        'accuracy': accuracy_score(true_labels, true_predictions),
-        'f1': f1_score(true_labels, true_predictions),
-        'classification_report': classification_report(true_labels, true_predictions)
-    }
-    return results
 
 
 def prepare_examples(examples):
@@ -96,27 +74,26 @@ def train():
     train_dataset.set_format("torch")
     eval_dataset.set_format(type="torch")
 
+    # Use os.environ['SM_MODEL_DIR'] directly for output_dir
     training_args = TrainingArguments(
-        output_dir='../../../models',
+        output_dir=os.environ['SM_MODEL_DIR'],
         max_steps=10,
-        eval_steps=2,
         save_steps=4,
         learning_rate=1e-1,
-        evaluation_strategy='steps',
-        metric_for_best_model='accuracy',
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
-        load_best_model_at_end=True
+        save_total_limit=1,
+        remove_unused_columns=False,
+        push_to_hub=False,
+        evaluation_strategy='no',
+        save_strategy='steps'
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        tokenizer=processor,
         data_collator=default_data_collator,
-        compute_metrics=compute_metrics
     )
 
     trainer.train()
