@@ -116,7 +116,8 @@ def train():
     )
 
     trainer.train()
-    trainer.save_model('../../../models')
+    trainer.save_model(os.environ['SM_MODEL_DIR']) #save to sagemaker model dir
+
 
 
 train()
