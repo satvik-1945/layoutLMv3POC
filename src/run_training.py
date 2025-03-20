@@ -5,9 +5,9 @@ from transformers import LayoutLMv3ForTokenClassification, TrainingArguments, Tr
 from transformers.data.data_collator import default_data_collator
 import subprocess
 import sys
+from seqeval.metrics import accuracy_score, classification_report, f1_score
+from seqeval import SeqEval
 
-# Explicitly install seqeval (for debugging)
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'seqeval'])
 
 base_model = 'microsoft/layoutlmv3-large'
 label_list = ['B-ANSWER_RADIO', 'I-ANSWER_RADIO', 'E-ANSWER_RADIO', 'B-ANSWER_TEXT', 'I-ANSWER_TEXT', 'E-ANSWER_TEXT',
@@ -18,6 +18,31 @@ label2id = {v: k for k, v in enumerate(label_list)}
 model = LayoutLMv3ForTokenClassification.from_pretrained(base_model, num_labels=len(label_list),
                                                          id2label=id2label, label2id=label2id)
 processor = LayoutLMv3Processor.from_pretrained(base_model, apply_ocr=False)
+
+
+def compute_metrics(p):
+    predictions, labels = p
+    predictions = np.argmax(predictions, axis=2)
+
+    true_predictions = [
+        [label_list[p] for (p, l) in zip(prediction, label) if l != -100]
+        for prediction, label in zip(predictions, labels)
+    ]
+    true_labels = [
+        [label_list[l] for (p, l) in zip(prediction, label) if l != -100]
+        for prediction, label in zip(predictions, labels)
+    ]
+
+
+    evaluator = SeqEval()
+    scores = evaluator.evaluate(true_predictions, true_labels, verbose=True)
+
+    return {
+        "precision": scores["overall_precision"],
+        "recall": scores["overall_recall"],
+        "f1": scores["overall_f1"],
+        "accuracy": scores["overall_accuracy"],
+    }
 
 
 def prepare_examples(examples):
