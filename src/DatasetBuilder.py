@@ -83,22 +83,17 @@ class DatasetBuilder(datasets.GeneratorBasedBuilder):
                 words = [w for w in words if w["text"].strip() != ""]
                 if len(words) == 0:
                     continue
-                if label == "others":
-                    for w in words:
-                        tokens.append(w["text"])
-                        ner_tags.append("O  ")
-                        cur_line_bboxes.append(self.normalize_bbox(w["bbox"], size))
-                else:
-                    tokens.append(words[0]["text"])
-                    ner_tags.append("B-" + label.upper())
-                    cur_line_bboxes.append(self.normalize_bbox(words[0]["bbox"], size))
-                    for w in words[1:-1]:
-                        tokens.append(w["text"])
-                        ner_tags.append("I-" + label.upper())
-                        cur_line_bboxes.append(self.normalize_bbox(w["bbox"], size))
-                    tokens.append(words[-1]["text"])
-                    ner_tags.append("E-" + label.upper())
-                    cur_line_bboxes.append(self.normalize_bbox(words[-1]["bbox"], size))
+            
+                tokens.append(words[0]["text"])
+                ner_tags.append("B-" + label.upper())
+                cur_line_bboxes.append(self.normalize_bbox(words[0]["bbox"], size))
+                for w in words[1:-1]:
+                    tokens.append(w["text"])
+                    ner_tags.append("I-" + label.upper())
+                    cur_line_bboxes.append(self.normalize_bbox(w["bbox"], size))
+                tokens.append(words[-1]["text"])
+                ner_tags.append("E-" + label.upper())
+                cur_line_bboxes.append(self.normalize_bbox(words[-1]["bbox"], size))
                 cur_line_bboxes = self.get_line_bbox(cur_line_bboxes)
                 bboxes.extend(cur_line_bboxes)
             yield guid, {"id": str(guid), "tokens": tokens, "bboxes": bboxes, "ner_tags": ner_tags, "image": image}
