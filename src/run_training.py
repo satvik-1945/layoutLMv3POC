@@ -104,13 +104,16 @@ def train():
         output_dir=os.environ['SM_MODEL_DIR'],
         max_steps=10,
         save_steps=4,
+        eval_steps = 2, #add eval steps
         learning_rate=1e-1,
+        evaluation_strategy='steps', # add evaluation strategy
+        metric_for_best_model='accuracy', # add metric for best model
+        load_best_model_at_end=True, #load best model at end
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
         save_total_limit=1,
         remove_unused_columns=False,
         push_to_hub=False,
-        evaluation_strategy='no',
         save_strategy='steps'
     )
 
@@ -118,7 +121,10 @@ def train():
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        eval_dataset=eval_dataset, #add eval dataset
+        tokenizer=processor, #add tokenizer
         data_collator=default_data_collator,
+        compute_metrics=compute_metrics #add compute metrics
     )
 
     trainer.train()
